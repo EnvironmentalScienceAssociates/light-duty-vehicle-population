@@ -1,0 +1,17 @@
+# File was created based on guidance in ESA_BrandGuidelines.pdf
+meta:
+  name:
+    short: ESA
+    full: Environmental Science Associates
+  link: 
+    home: https://esassoc.com/
+    github: https://github.com/EnvironmentalScienceAssociates
+    linkedin: https://www.linkedin.com/company/environmental-science-associates
+
+color:
+  palette:
+    orange: "#F9A134"
+    gray: "#ADAFB2"
+  primary: orange
+  secondary: gray
+
