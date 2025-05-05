@@ -8,7 +8,8 @@ if (!dir.exists("data")) dir.create("data")
 # https://www.energy.ca.gov/files/zev-and-infrastructure-stats-data
 ld_file = file.path("data", "Vehicle_Population.xlsx")
 if (!file.exists(ld_file)){
-  download.file("https://www.energy.ca.gov/filebrowser/download/6311?fid=6311", ld_file)
+  download.file("https://www.energy.ca.gov/filebrowser/download/6311?fid=6311", 
+                ld_file, mode = "wb")
 }
 
 ft_lev = c("Battery Electric (BEV)", "Plug-in Hybrid (PHEV)", "Fuel Cell (FCEV)", 
