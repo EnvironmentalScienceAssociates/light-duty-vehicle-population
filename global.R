@@ -8,26 +8,36 @@ library(leaflet.extras)
 library(sf)
 library(ggplot2)
 library(plotly)
+library(reactable)
 
-counties_pop = readRDS(file.path("data", "counties_pop.rds"))
-counties_sf = readRDS(file.path("data", "counties_sf.rds"))
-zips_pop = readRDS(file.path("data", "zips_pop.rds"))
-zips_sf = readRDS(file.path("data", "zips_sf.rds")) |> 
-  filter(zip %in% zips_pop$zip)
+county_pop = readRDS(file.path("data", "county_pop.rds"))
+county_sf = readRDS(file.path("data", "county_sf.rds"))
+counties = c(county_sf$county, "Out of State")
 
-counties = counties_sf$county
-# intentionally excluding zip codes in zips_pop that aren't part of map
-zips = zips_sf$zip
+zip_pop = readRDS(file.path("data", "zip_pop.rds"))
+zips = sort(unique(zip_pop$zip))
+zip_sf = readRDS(file.path("data", "zip_sf.rds")) |> 
+  filter(zip %in% zips)
 
-fuel_types = levels(counties_pop$fuel_type)
-fuel_type_colors = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", 
-                     "#66a61e", "#e6ab02", "#a6761d") |> 
+fuel_types = levels(county_pop$fuel_type)
+fuel_type_colors = c("#66a61e", "#7570b3", "#1b9e77", "#d95f02",  
+                     "#a6761d", "#e6ab02", "#e7298a") |> 
   setNames(fuel_types)
 
 zevs = c("Battery Electric (BEV)", "Plug-in Hybrid (PHEV)", "Fuel Cell (FCEV)")
 
-year_min = min(counties_pop$year, na.rm = TRUE)
-year_max = max(counties_pop$year, na.rm = TRUE)
+year_min = min(county_pop$year, na.rm = TRUE)
+year_max = max(county_pop$year, na.rm = TRUE)
 
-inc_opts = c("Incorporated", "Unincorporated")
+map_opts = c("County" = "county", "Zip Code" = "zip")
+rv_opts = c("Count" = "count", "Percent" = "percent")
+rv_map_opts = c("Count" = "count_zev", "Density" = "density")
+area_types = c("Total" = "area_sqmi", "Incorporated" = "area_inc")
+
+# from toupper documentation
+simple_cap <- function(x) {
+  s <- strsplit(x, " ")[[1]]
+  paste(toupper(substring(s, 1, 1)), substring(s, 2),
+        sep = "", collapse = " ")
+}
 
