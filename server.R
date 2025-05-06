@@ -147,31 +147,29 @@ function(input, output, session) {
   })
   
   spatialPopSumm <- reactive({
-    yr_lbl = "Year with Max ZEVs: "
-    zev_lbl = "Max Number of ZEVs: "
-    dens_lbl = "Max Density of ZEVs: "
+    yr_lbl = "Year with Max Vehicles: "
+    zev_lbl = "Max Number of Vehicles: "
+    dens_lbl = "Max Density of Vehicles: "
     if (input$nav == "Bar Plot"){
       yr_lbl = "Year: "
-      zev_lbl = "Number of ZEVs: "
-      dens_lbl = "Density of ZEVs: "
+      zev_lbl = "Number of Vehicles: "
+      dens_lbl = "Density of Vehicles: "
     } 
     
     pop = popSub3() |>
-      # already filtered for selected fuel types above
-      filter(fuel_type %in% zevs) |> 
       group_by(across(all_of(c(input$map_filter, "year")))) |> 
-      summarise(count_zev = sum(count, na.rm = TRUE)) |> 
+      summarise(count = sum(count, na.rm = TRUE)) |> 
       group_by(across(all_of(c(input$map_filter)))) |> 
-      summarise(year = year[count_zev == max(count_zev, na.rm = TRUE)][1],
-                count_zev = max(count_zev, na.rm = TRUE))
+      summarise(year = year[count == max(count, na.rm = TRUE)][1],
+                count = max(count, na.rm = TRUE))
     
     spatialSub() |> 
       left_join(pop, by = input$map_filter) |> 
-      filter(count_zev > 0) |> 
-      mutate(density = round(count_zev/area_sqmi, 2),
+      filter(count > 0) |> 
+      mutate(density = round(count/area_sqmi, 2),
              popup = paste0(simple_cap(input$map_filter), ": ", .data[[input$map_filter]], "<br>",                            
                             yr_lbl, year, "<br>",
-                            zev_lbl, count_zev, "<br>",
+                            zev_lbl, count, "<br>",
                             dens_lbl, density, " per sq. mi.<br>",
                             "Total Area: ", area_sqmi, " (sq. mi.)<br>",
                             "Incorporated Area: ", area_inc, " (sq. mi.)"))
@@ -206,14 +204,15 @@ function(input, output, session) {
   })
   
   observeEvent(rv$shape, {
-    inter = st_join(spatialLayer(), rv$shape) |> 
+    # update both at same time so that it is easy to switch from county to zip
+    # with the same polygon select
+    county_inter = st_join(county_sf, rv$shape) |> 
       filter(!is.na(feature_type))
+    updatePickerInput(session, "counties", selected = county_inter$county)
     
-    if (input$map_filter == "county"){
-      updatePickerInput(session, "counties", selected = inter$county)
-    } else {
-      updatePickerInput(session, "zips", selected = inter$zip)
-    }
+    zip_inter = st_join(zip_sf, rv$shape) |> 
+      filter(!is.na(feature_type))
+    updatePickerInput(session, "zips", selected = zip_inter$zip)
   })
   
   proxy <- leafletProxy("map")

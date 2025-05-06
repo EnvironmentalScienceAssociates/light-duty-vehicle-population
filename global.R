@@ -31,7 +31,7 @@ year_max = max(county_pop$year, na.rm = TRUE)
 
 map_opts = c("County" = "county", "Zip Code" = "zip")
 rv_opts = c("Count" = "count", "Percent" = "percent")
-rv_map_opts = c("Count" = "count_zev", "Density" = "density")
+rv_map_opts = c("Count" = "count", "Density" = "density")
 area_types = c("Total" = "area_sqmi", "Incorporated" = "area_inc")
 
 # from toupper documentation

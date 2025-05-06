@@ -48,7 +48,7 @@ page_sidebar(
         radioButtons("percent_type", "Percent Type", choices = c("All", "Selected"), 
                      selected = "All", inline = TRUE),
         radioButtons("resp_map", "Vehicle Population (map)", choices = rv_map_opts, 
-                     selected = "count_zev", inline = TRUE),
+                     selected = "count", inline = TRUE),
       )
     ),
     conditionalPanel(
