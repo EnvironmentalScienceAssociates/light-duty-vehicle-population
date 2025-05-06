@@ -4,57 +4,44 @@ page_sidebar(
   window_title = "Light-Duty Vehicles",
   sidebar = sidebar(
     width = 320,
-    accordion(
-      open = "Filters",
-      accordion_panel(
-        title = "Filters",
-        conditionalPanel(
-          condition = 'input.nav == "Bar Plot"',
-          sliderInput(inputId = "year", label = "Year", sep = "", step = 1, 
-                      min = year_min, year_max, value = year_max, animate = FALSE)
-        ),
-        conditionalPanel(
-          condition = 'input.nav != "Bar Plot"',
-          sliderInput(inputId = "years", label = "Years", sep = "", step = 1, 
-                      min = year_min, max = year_max, value = c(year_min, year_max))
-        ),
-        radioButtons("map_filter", "Map Filter", choices = map_opts, 
-                     selected = "county", inline = TRUE),
-        conditionalPanel(
-          condition = 'input.map_filter == "county"',
-          pickerInput(inputId = "counties", label = "Counties", multiple = TRUE, 
-                      choices = counties, selected = counties,
-                      options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 8,
-                                     `selected-text-format` = "count > 3")) |>
-            tooltip("Counties can also be selected by drawing polygons on the map.")
-        ),
-        conditionalPanel(
-          condition = 'input.map_filter == "zip"',
-          pickerInput(inputId = "zips", label = "Zip Codes", multiple = TRUE, 
-                      choices = zips, selected = zips,
-                      options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 8,
-                                     `selected-text-format` = "count > 5")) |>
-            tooltip("Zip codes can also be selected by drawing polygons on the map.")
-        ),
-        pickerInput(inputId = "fuel_types", label = "Fuel Types", multiple = TRUE, 
-                    choices = fuel_types, selected = zevs,
-                    options = list(`actions-box` = TRUE, `live-search` = TRUE,
-                                   `selected-text-format` = "count > 3"))
-      ),
-      accordion_panel(
-        title = "Variables",
-        radioButtons("resp", "Vehicle Population (plots)", choices = resp_opts, 
-                     selected = "count", inline = TRUE),
-        radioButtons("percent_type", "Percent Type", choices = c("All", "Selected"), 
-                     selected = "All", inline = TRUE),
-        selectInput("resp_map", "Vehicle Population (map)", choices = resp_map_opts, 
-                     selected = "count"),
-      )
+    conditionalPanel(
+      condition = 'input.nav == "Bar Plot"',
+      sliderInput(inputId = "year", label = "Year", sep = "", step = 1, 
+                  min = year_min, year_max, value = year_max, animate = FALSE)
     ),
+    conditionalPanel(
+      condition = 'input.nav != "Bar Plot"',
+      sliderInput(inputId = "years", label = "Years", sep = "", step = 1, 
+                  min = year_min, max = year_max, value = c(year_min, year_max))
+    ),
+    radioButtons("map_filter", "Map Filter", choices = map_opts, 
+                 selected = "county", inline = TRUE),
+    conditionalPanel(
+      condition = 'input.map_filter == "county"',
+      pickerInput(inputId = "counties", label = "Counties", multiple = TRUE, 
+                  choices = counties, selected = counties,
+                  options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 8,
+                                 `selected-text-format` = "count > 3")) |>
+        tooltip("Counties can also be selected by drawing polygons on the map.")
+    ),
+    conditionalPanel(
+      condition = 'input.map_filter == "zip"',
+      pickerInput(inputId = "zips", label = "Zip Codes", multiple = TRUE, 
+                  choices = zips, selected = zips,
+                  options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 8,
+                                 `selected-text-format` = "count > 5")) |>
+        tooltip("Zip codes can also be selected by drawing polygons on the map.")
+    ),
+    pickerInput(inputId = "fuel_types", label = "Fuel Types", multiple = TRUE, 
+                choices = fuel_types, selected = zevs,
+                options = list(`actions-box` = TRUE, `live-search` = TRUE,
+                               `selected-text-format` = "count > 3")),
     conditionalPanel(
       condition = 'input.nav == "Table"',
       downloadButton("download", "Download Table", icon = icon("download"))
     ),
+    br(),
+    br(),
     a(img(src="ESA-small.png", alt="ESA logo", width = "200"), 
       href = "https://esassoc.com/",
       target = "_blank"),
@@ -65,6 +52,15 @@ page_sidebar(
     navset_card_underline(
       id = "nav",
       full_screen = TRUE,
+      header = card_header(
+        popover(bsicons::bs_icon("gear", class = "ms-auto"),
+                radioButtons("resp", "Vehicle Population (plots)", choices = resp_opts, 
+                             selected = "count", inline = TRUE),
+                radioButtons("percent_type", "Percent Type", choices = c("All", "Selected"), 
+                             selected = "All", inline = TRUE),
+                title = "Plot Settings"),
+        class = "d-flex justify-content-between"
+      ),
       nav_panel(
         title = "Bar Plot",
         plotlyOutput("barPlot")
@@ -76,16 +72,27 @@ page_sidebar(
       nav_panel(
         title = "Table",
         reactableOutput("table")
+      )
+    ),
+    navset_card_underline(
+      full_screen = TRUE,
+      header = card_header(
+        popover(bsicons::bs_icon("gear", class = "ms-auto"),
+                selectInput("resp_map", "Vehicle Population", choices = resp_map_opts,
+                            selected = "count"),
+                title = "Plot Settings"),
+        class = "d-flex justify-content-between"
       ),
+      nav_panel(
+        title = "Map",
+        leafletOutput("map")
+      ),
+      nav_spacer(),
       nav_menu(
         title = "Links",
         nav_item(HTML('<a href="https://www.energy.ca.gov/files/zev-and-infrastructure-stats-data" target="_blank">Data</a>')),
         nav_item(HTML('<a href="https://github.com/EnvironmentalScienceAssociates/light-duty-vehicle-population" target="_blank">Code</a>'))
       )
-    ),
-    card(
-      full_screen = TRUE,
-      leafletOutput("map")
     )
   )
 )
