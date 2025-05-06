@@ -131,6 +131,11 @@ function(input, output, session) {
   
   # Spatial -----------------------------------------------------------------
   
+  observeEvent(input$map_filter,{
+    opts = if (input$map_filter == "county") resp_map_opts else resp_map_opts[1:2]
+    updateSelectInput(session, "resp_map", choices = opts)
+  })
+  
   spatialLayer <- reactive({
     if (input$map_filter == "county") county_sf else zip_sf
   })
@@ -148,11 +153,11 @@ function(input, output, session) {
   
   spatialPopSumm <- reactive({
     yr_lbl = "Year with Max Vehicles: "
-    zev_lbl = "Max Number of Vehicles: "
+    veh_lbl = "Max Number of Vehicles: "
     dens_lbl = "Max Density of Vehicles: "
     if (input$nav == "Bar Plot"){
       yr_lbl = "Year: "
-      zev_lbl = "Number of Vehicles: "
+      veh_lbl = "Number of Vehicles: "
       dens_lbl = "Density of Vehicles: "
     } 
     
@@ -163,16 +168,25 @@ function(input, output, session) {
       summarise(year = year[count == max(count, na.rm = TRUE)][1],
                 count = max(count, na.rm = TRUE))
     
-    spatialSub() |> 
+    tmp = spatialSub() |> 
       left_join(pop, by = input$map_filter) |> 
       filter(count > 0) |> 
-      mutate(density = round(count/area_sqmi, 2),
+      mutate(per_area = count/area_sqmi,
              popup = paste0(simple_cap(input$map_filter), ": ", .data[[input$map_filter]], "<br>",                            
                             yr_lbl, year, "<br>",
-                            zev_lbl, count, "<br>",
-                            dens_lbl, density, " per sq. mi.<br>",
-                            "Total Area: ", area_sqmi, " (sq. mi.)<br>",
-                            "Incorporated Area: ", area_inc, " (sq. mi.)"))
+                            veh_lbl, count, "<br>"))
+    
+    if (input$map_filter == "county"){
+      popest_sub = county_popest[county_popest[["county"]] %in% input$counties,]
+      tmp = tmp |> 
+        left_join(popest_sub, by = join_by(county, year)) |> 
+        mutate(per_capita = count/popest,
+               popup = paste0(popup, veh_lbl, round(per_capita, 3), " per capita<br>"))
+    }
+
+    mutate(tmp, popup = paste0(popup, dens_lbl, round(per_area, 3), " per sq. mi.<br>",
+                               "Total Area: ", area_sqmi, " (sq. mi.)<br>",
+                               "Incorporated Area: ", area_inc, " (sq. mi.)"))
   })
   
   output$map = renderLeaflet({
@@ -221,7 +235,7 @@ function(input, output, session) {
     req(nrow(spatialPopSumm()) > 0)
     
     dfx = spatialPopSumm()
-    
+
     proxy |>
       clearGroup("poly") |>
       addPolygons(data = dfx,

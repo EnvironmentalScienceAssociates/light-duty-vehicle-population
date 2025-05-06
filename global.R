@@ -10,6 +10,9 @@ library(ggplot2)
 library(plotly)
 library(reactable)
 
+# added popest later which refers to human population
+# pop refers to vehicle population
+county_popest = readRDS(file.path("data", "county_popest.rds"))
 county_pop = readRDS(file.path("data", "county_pop.rds"))
 county_sf = readRDS(file.path("data", "county_sf.rds"))
 counties = c(county_sf$county, "Out of State")
@@ -30,9 +33,8 @@ year_min = min(county_pop$year, na.rm = TRUE)
 year_max = max(county_pop$year, na.rm = TRUE)
 
 map_opts = c("County" = "county", "Zip Code" = "zip")
-rv_opts = c("Count" = "count", "Percent" = "percent")
-rv_map_opts = c("Count" = "count", "Density" = "density")
-area_types = c("Total" = "area_sqmi", "Incorporated" = "area_inc")
+resp_opts = c("Count" = "count", "Percent" = "percent")
+resp_map_opts = c("Count" = "count", "Per Area" = "per_area", "Per Capita" = "per_capita")
 
 # from toupper documentation
 simple_cap <- function(x) {

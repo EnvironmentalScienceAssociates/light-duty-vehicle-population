@@ -43,12 +43,12 @@ page_sidebar(
       ),
       accordion_panel(
         title = "Variables",
-        radioButtons("resp", "Vehicle Population (plots)", choices = rv_opts, 
+        radioButtons("resp", "Vehicle Population (plots)", choices = resp_opts, 
                      selected = "count", inline = TRUE),
         radioButtons("percent_type", "Percent Type", choices = c("All", "Selected"), 
                      selected = "All", inline = TRUE),
-        radioButtons("resp_map", "Vehicle Population (map)", choices = rv_map_opts, 
-                     selected = "count", inline = TRUE),
+        selectInput("resp_map", "Vehicle Population (map)", choices = resp_map_opts, 
+                     selected = "count"),
       )
     ),
     conditionalPanel(
