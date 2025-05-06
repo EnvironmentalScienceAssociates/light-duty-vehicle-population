@@ -1,7 +1,7 @@
 
 page_sidebar(
   title = "Light-Duty Vehicle Population in California",
-  window_title = "Light-Duty",
+  window_title = "Light-Duty Vehicles",
   sidebar = sidebar(
     width = 320,
     accordion(
@@ -24,7 +24,7 @@ page_sidebar(
           condition = 'input.map_filter == "county"',
           pickerInput(inputId = "counties", label = "Counties", multiple = TRUE, 
                       choices = counties, selected = counties,
-                      options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 10,
+                      options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 8,
                                      `selected-text-format` = "count > 3")) |>
             tooltip("Counties can also be selected by drawing polygons on the map.")
         ),
@@ -32,7 +32,7 @@ page_sidebar(
           condition = 'input.map_filter == "zip"',
           pickerInput(inputId = "zips", label = "Zip Codes", multiple = TRUE, 
                       choices = zips, selected = zips,
-                      options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 10,
+                      options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 8,
                                      `selected-text-format` = "count > 5")) |>
             tooltip("Zip codes can also be selected by drawing polygons on the map.")
         ),
