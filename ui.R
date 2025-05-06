@@ -55,7 +55,6 @@ page_sidebar(
       condition = 'input.nav == "Table"',
       downloadButton("download", "Download Table", icon = icon("download"))
     ),
-    br(),
     a(img(src="ESA-small.png", alt="ESA logo", width = "200"), 
       href = "https://esassoc.com/",
       target = "_blank"),
