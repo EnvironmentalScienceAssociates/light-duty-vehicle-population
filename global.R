@@ -33,7 +33,8 @@ year_min = min(county_pop$year, na.rm = TRUE)
 year_max = max(county_pop$year, na.rm = TRUE)
 
 map_opts = c("County" = "county", "Zip Code" = "zip")
-resp_opts = c("Count" = "count", "Percent" = "percent")
+resp_opts = c("Count" = "count", "Percent All" = "percent_all", 
+              "Percent Selected" = "percent_selected")
 resp_map_opts = c("Count" = "count", "Per Area" = "per_area", "Per Capita" = "per_capita")
 
 # from toupper documentation

@@ -45,7 +45,7 @@ function(input, output, session) {
   })
   
   popSumm <- reactive({
-    total = if (input$percent_type == "All") popSummTotal() else popSummTotalFT()
+    total = if (input$resp == "percent_selected") popSummTotalFT() else popSummTotal()
     
     popSub3() |>
       group_by(year, fuel_type) |> 
@@ -61,14 +61,19 @@ function(input, output, session) {
     if (input$resp == "count") {
       "Number of Vehicles" 
     } else { 
-      paste("Percent of", input$percent_type, "Vehicle Types")
+      pt = if (input$resp == "percent_selected") "Selected" else "All"
+      paste("Percent of", pt, "Vehicle Types")
     }
+  })
+  
+  resp <- reactive({
+    if (grepl("percent", input$resp)) "percent" else input$resp
   })
   
   output$barPlot <- renderPlotly({
     req(nrow(popSumm()) > 0)
     p = ggplot(popSumm(),
-               aes(x = fuel_type, y = .data[[input$resp]], fill = fuel_type, text = tooltip_text)) +
+               aes(x = fuel_type, y = .data[[resp()]], fill = fuel_type, text = tooltip_text)) +
       geom_bar(stat = "identity", width = 0.5) +
       labs(y = yLab(), title = paste("Year:", input$year)) +
       scale_fill_manual(name = "Fuel Type", values = fuel_type_colors) +
@@ -82,7 +87,7 @@ function(input, output, session) {
   output$tsPlot <- renderPlotly({
     req(nrow(popSumm()) > 0)
     p = ggplot(popSumm(),
-               aes(x = year, y = .data[[input$resp]], color = fuel_type,
+               aes(x = year, y = .data[[resp()]], color = fuel_type,
                    group = fuel_type, text = tooltip_text)) +
       geom_line(alpha = 0.5) +
       geom_point(alpha = 0.8) +
@@ -128,6 +133,18 @@ function(input, output, session) {
       write.csv(tableData(), file, row.names = FALSE)
     }
   )
+  
+  output$plotInfo <- renderText({
+    if (input$nav != "Table"){
+      elem = if (input$nav == "Bar Plot") "bar" else "point"
+      out = paste("Hover over a", elem, "to see the actual values.")
+    }
+    if (input$nav == "Table"){
+      out = "The aggregated row shows the number of years in the Year column and 
+      the max number of vehicles across all years in the fuel type columns."
+    }
+    out
+  })
   
   # Spatial -----------------------------------------------------------------
   
@@ -183,7 +200,7 @@ function(input, output, session) {
         mutate(per_capita = count/popest,
                popup = paste0(popup, veh_lbl, round(per_capita, 3), " per capita<br>"))
     }
-
+    
     mutate(tmp, popup = paste0(popup, dens_lbl, round(per_area, 3), " per sq. mi.<br>",
                                "Total Area: ", area_sqmi, " (sq. mi.)<br>",
                                "Incorporated Area: ", area_inc, " (sq. mi.)"))
@@ -235,7 +252,7 @@ function(input, output, session) {
     req(nrow(spatialPopSumm()) > 0)
     
     dfx = spatialPopSumm()
-
+    
     proxy |>
       clearGroup("poly") |>
       addPolygons(data = dfx,
@@ -247,6 +264,19 @@ function(input, output, session) {
                   label = dfx[[input$map_filter]],
                   popup = ~popup,
                   group = "poly")
+  })
+  
+  output$mapInfo <- renderText({
+    draw_info = "Counties and zip codes can be selected by drawing polygons
+                with the draw toolbar on the left side of the map."
+    if (input$nav == "Bar Plot"){
+      out = draw_info
+    }
+    if (input$nav != "Bar Plot"){
+      out = paste(draw_info, " Map colors represent the year with the max number 
+                  of vehicles from across all years in the selected year range.")
+    }
+    out
   })
   
 }
