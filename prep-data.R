@@ -3,6 +3,26 @@ library(dplyr)
 
 if (!dir.exists("data")) dir.create("data")
 
+
+# Human Population --------------------------------------------------------
+
+prep_census <- function(data){
+  data |> 
+    filter(STNAME == "California" & COUNTY != 0) |> 
+    select(county = CTYNAME, starts_with("POPEST")) |> 
+    tidyr::pivot_longer(cols = !county, names_to = "year", values_to = "popest") |> 
+    mutate(county = sub(" County", "", county),
+           year = as.numeric(sub("POPESTIMATE", "", year)))
+}
+
+base_url = "https://www2.census.gov/programs-surveys/popest/datasets"
+
+# https://www.census.gov/data/datasets/time-series/demo/popest/2010s-counties-total.html
+county_popest = prep_census(read.csv(paste0(base_url, "/2010-2019/counties/totals/co-est2019-alldata.csv")))  |> 
+  # https://www.census.gov/data/datasets/time-series/demo/popest/2020s-counties-total.html
+  bind_rows(prep_census(read.csv(paste0(base_url, "/2020-2024/counties/totals/co-est2024-alldata.csv"))))
+saveRDS(county_popest, file.path("data", "county_popest.rds"))
+
 # Vehicle Population ------------------------------------------------------
 
 # https://www.energy.ca.gov/files/zev-and-infrastructure-stats-data
