@@ -173,7 +173,7 @@ function(input, output, session) {
       if (type == "county"){
         paste(x, "County")
       } else {
-        paste("Zip:", x)
+        paste("ZIP", x)
       }
     }
     
@@ -188,8 +188,8 @@ function(input, output, session) {
       left_join(pop, by = input$map_filter) |> 
       filter(count > 0) |> 
       mutate(per_area = count/area_sqmi,
-             popup = paste0("<strong>", top_row(input$map_filter, .data[[input$map_filter]]), "</strong><br>", 
-                            "<strong>", year, "</strong><br>",
+             popup = paste0("<strong>", top_row(input$map_filter, .data[[input$map_filter]]), 
+                            " (", year, ")</strong><br>", 
                             "<strong>Vehicles</strong><br>",
                             count, " total<br>"))
     
