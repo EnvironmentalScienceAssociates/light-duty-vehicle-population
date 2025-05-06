@@ -169,14 +169,13 @@ function(input, output, session) {
   })
   
   spatialPopSumm <- reactive({
-    yr_lbl = "Year with Max Vehicles: "
-    veh_lbl = "Max Number of Vehicles: "
-    dens_lbl = "Max Density of Vehicles: "
-    if (input$nav == "Bar Plot"){
-      yr_lbl = "Year: "
-      veh_lbl = "Number of Vehicles: "
-      dens_lbl = "Density of Vehicles: "
-    } 
+    top_row <- function(type, x){
+      if (type == "county"){
+        paste(x, "County")
+      } else {
+        paste("Zip:", x)
+      }
+    }
     
     pop = popSub3() |>
       group_by(across(all_of(c(input$map_filter, "year")))) |> 
@@ -189,21 +188,23 @@ function(input, output, session) {
       left_join(pop, by = input$map_filter) |> 
       filter(count > 0) |> 
       mutate(per_area = count/area_sqmi,
-             popup = paste0(simple_cap(input$map_filter), ": ", .data[[input$map_filter]], "<br>",                            
-                            yr_lbl, year, "<br>",
-                            veh_lbl, count, "<br>"))
+             popup = paste0("<strong>", top_row(input$map_filter, .data[[input$map_filter]]), "</strong><br>", 
+                            "<strong>", year, "</strong><br>",
+                            "<strong>Vehicles</strong><br>",
+                            count, " total<br>"))
     
     if (input$map_filter == "county"){
       popest_sub = county_popest[county_popest[["county"]] %in% input$counties,]
       tmp = tmp |> 
         left_join(popest_sub, by = join_by(county, year)) |> 
         mutate(per_capita = count/popest,
-               popup = paste0(popup, veh_lbl, round(per_capita, 3), " per capita<br>"))
+               popup = paste0(popup, round(per_capita, 3), " per capita<br>"))
     }
     
-    mutate(tmp, popup = paste0(popup, dens_lbl, round(per_area, 3), " per sq. mi.<br>",
-                               "Total Area: ", area_sqmi, " (sq. mi.)<br>",
-                               "Incorporated Area: ", area_inc, " (sq. mi.)"))
+    mutate(tmp, popup = paste0(popup, round(per_area, 3), " per sq. mi.<br>",
+                               "<strong>Area</strong><br>",
+                               "Total: ", area_sqmi, " sq. mi.<br>",
+                               "Incorporated: ", area_inc, " sq. mi."))
   })
   
   output$map = renderLeaflet({
