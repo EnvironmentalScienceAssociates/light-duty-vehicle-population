@@ -5,10 +5,10 @@ function(input, output, session) {
   
   popSub1 <- reactive({
     dfx = if (input$map_filter == "county") county_pop else zip_pop
-    if (input$nav != "Bar Plot"){
+    if (input$display != "Bar Plot"){
       dfx = dfx[dfx[["year"]] >= input$years[1] & dfx[["year"]] <= input$years[2], ]
     }
-    if (input$nav == "Bar Plot"){
+    if (input$display == "Bar Plot"){
       dfx = dfx[dfx[["year"]] == input$year, ]
     }
     dfx
@@ -71,7 +71,7 @@ function(input, output, session) {
   })
   
   output$barPlot <- renderPlotly({
-    req(nrow(popSumm()) > 0)
+    req(input$display == "Bar Plot", nrow(popSumm()) > 0)
     p = ggplot(popSumm(),
                aes(x = fuel_type, y = .data[[resp()]], fill = fuel_type, text = tooltip_text)) +
       geom_bar(stat = "identity", width = 0.5) +
@@ -85,7 +85,7 @@ function(input, output, session) {
   })
   
   output$tsPlot <- renderPlotly({
-    req(nrow(popSumm()) > 0)
+    req(nrow(popSumm()) > 0) # input$display == "Time Series Plot", 
     p = ggplot(popSumm(),
                aes(x = year, y = .data[[resp()]], color = fuel_type,
                    group = fuel_type, text = tooltip_text)) +
@@ -106,7 +106,7 @@ function(input, output, session) {
   })
   
   output$table <- renderReactable({
-    req(nrow(tableData()) > 0)
+    req(input$display == "Table", nrow(tableData()) > 0)
     dfx = tableData()
     
     reactable(dfx,
@@ -133,18 +133,6 @@ function(input, output, session) {
       write.csv(tableData(), file, row.names = FALSE)
     }
   )
-  
-  output$plotInfo <- renderText({
-    if (input$nav != "Table"){
-      elem = if (input$nav == "Bar Plot") "bar" else "point"
-      out = paste("Hover over a", elem, "to see the actual values.")
-    }
-    if (input$nav == "Table"){
-      out = "The aggregated row shows the number of years in the Year column and 
-      the max number of vehicles across all years in the fuel type columns."
-    }
-    out
-  })
   
   # Spatial -----------------------------------------------------------------
   
@@ -178,25 +166,25 @@ function(input, output, session) {
     }
     
     pop = popSub3() |>
-      group_by(across(all_of(c(input$map_filter, "year")))) |> 
-      summarise(count = sum(count, na.rm = TRUE)) |> 
-      group_by(across(all_of(c(input$map_filter)))) |> 
+      group_by(across(all_of(c(input$map_filter, "year")))) |>
+      summarise(count = sum(count, na.rm = TRUE)) |>
+      group_by(across(all_of(c(input$map_filter)))) |>
       summarise(year = year[count == max(count, na.rm = TRUE)][1],
                 count = max(count, na.rm = TRUE))
     
-    tmp = spatialSub() |> 
-      left_join(pop, by = input$map_filter) |> 
-      filter(count > 0) |> 
+    tmp = spatialSub() |>
+      left_join(pop, by = input$map_filter) |>
+      filter(count > 0) |>
       mutate(per_area = count/area_sqmi,
-             popup = paste0("<strong>", top_row(input$map_filter, .data[[input$map_filter]]), 
-                            " (", year, ")</strong><br>", 
+             popup = paste0("<strong>", top_row(input$map_filter, .data[[input$map_filter]]),
+                            " (", year, ")</strong><br>",
                             "<strong>Vehicles</strong><br>",
                             count, " total<br>"))
     
     if (input$map_filter == "county"){
       popest_sub = county_popest[county_popest[["county"]] %in% input$counties,]
-      tmp = tmp |> 
-        left_join(popest_sub, by = join_by(county, year)) |> 
+      tmp = tmp |>
+        left_join(popest_sub, by = join_by(county, year)) |>
         mutate(per_capita = count/popest,
                popup = paste0(popup, round(per_capita, 3), " per capita<br>"))
     }
@@ -210,7 +198,7 @@ function(input, output, session) {
   output$map = renderLeaflet({
     leaflet(options = leafletOptions(attributionControl = FALSE)) |>
       setView(lng = -120, lat = 37.5, zoom = 6) |>
-      addProviderTiles(providers$Esri.WorldGrayCanvas) |> 
+      addProviderTiles(providers$Esri.WorldGrayCanvas) |>
       addDrawToolbar(
         targetGroup = "draw",
         singleFeature = TRUE,
@@ -238,11 +226,11 @@ function(input, output, session) {
   observeEvent(rv$shape, {
     # update both at same time so that it is easy to switch from county to zip
     # with the same polygon select
-    county_inter = st_join(county_sf, rv$shape) |> 
+    county_inter = st_join(county_sf, rv$shape) |>
       filter(!is.na(feature_type))
     updatePickerInput(session, "counties", selected = county_inter$county)
     
-    zip_inter = st_join(zip_sf, rv$shape) |> 
+    zip_inter = st_join(zip_sf, rv$shape) |>
       filter(!is.na(feature_type))
     updatePickerInput(session, "zips", selected = zip_inter$zip)
   })
@@ -267,17 +255,18 @@ function(input, output, session) {
                   group = "poly")
   })
   
-  output$mapInfo <- renderText({
+  output$mapInfo <- renderUI({
     draw_info = "Counties and zip codes can be selected by drawing polygons
                 with the draw toolbar on the left side of the map."
-    if (input$nav == "Bar Plot"){
-      out = draw_info
+    if (input$display == "Bar Plot"){
+      out = paste(draw_info, "<br><br>Map colors represent values from the
+                  selected year.")
     }
-    if (input$nav != "Bar Plot"){
-      out = paste(draw_info, " Map colors represent the year with the max number 
-                  of vehicles from across all years in the selected year range.")
+    if (input$display != "Bar Plot"){
+      out = paste(draw_info, "<br><br>Map colors represent values from the year 
+      with the max number of vehicles in the selected year range.")
     }
-    out
+    HTML(out)
   })
   
 }
