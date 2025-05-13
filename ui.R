@@ -5,17 +5,13 @@ page_navbar(
   id = "nav",
   sidebar = sidebar(
     width = 320,
-    conditionalPanel(
-      condition = 'input.display == "Bar Plot"',
-      sliderInput(inputId = "year", label = "Year", sep = "", step = 1, 
-                  min = year_min, year_max, value = year_max, 
-                  animate = animationOptions(interval = 2500))
-    ),
-    conditionalPanel(
-      condition = 'input.display != "Bar Plot"',
-      sliderInput(inputId = "years", label = "Years", sep = "", step = 1, 
-                  min = year_min, max = year_max, value = c(year_min, year_max))
-    ),
+    pickerInput(inputId = "fuel_types", label = "Fuel Types", multiple = TRUE, 
+                choices = fuel_types, selected = zevs,
+                options = list(`actions-box` = TRUE, `live-search` = TRUE,
+                               `selected-text-format` = "count > 3")),
+    sliderInput(inputId = "year", label = "Year", sep = "", step = 1, 
+                min = year_min, year_max, value = year_max, 
+                animate = animationOptions(interval = 2500)),
     radioButtons("map_filter", "Map Filter", choices = map_opts, 
                  selected = "county", inline = TRUE),
     conditionalPanel(
@@ -23,22 +19,18 @@ page_navbar(
       pickerInput(inputId = "counties", label = "Counties", multiple = TRUE, 
                   choices = counties, selected = counties,
                   options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 8,
-                                 `selected-text-format` = "count > 3"))
+                                 `selected-text-format` = "count > 3")) |>
+        tooltip("Counties can also be selected by drawing polygons
+                  with the draw toolbar on the left side of the map.")
     ),
     conditionalPanel(
       condition = 'input.map_filter == "zip"',
       pickerInput(inputId = "zips", label = "Zip Codes", multiple = TRUE, 
                   choices = zips, selected = zips,
                   options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 8,
-                                 `selected-text-format` = "count > 5"))
-    ),
-    pickerInput(inputId = "fuel_types", label = "Fuel Types", multiple = TRUE, 
-                choices = fuel_types, selected = zevs,
-                options = list(`actions-box` = TRUE, `live-search` = TRUE,
-                               `selected-text-format` = "count > 3")),
-    conditionalPanel(
-      condition = 'input.display == "Table"',
-      downloadButton("download", "Download Table", icon = icon("download"))
+                                 `selected-text-format` = "count > 5")) |>
+        tooltip("Zip codes can also be selected by drawing polygons
+                  with the draw toolbar on the left side of the map.")
     ),
     br(),
     a(img(src="ESA-small.png", alt="ESA logo", width = "200"), 
@@ -49,40 +41,7 @@ page_navbar(
   nav_panel(
     title = "App",
     layout_columns(
-      col_widths = c(7, 5),
-      card(
-        full_screen = TRUE,
-        card_header(
-          popover(
-            bsicons::bs_icon("gear", class = "ms-auto"), 
-            title = "Display Settings", 
-            selectInput(inputId = "display", label = "Display Type", 
-                        choices = c("Bar Plot", "Time Series Plot", "Table")),
-            conditionalPanel(
-              condition = 'input.display != "Table"',
-              selectInput("resp", "Vehicle Population", choices = resp_opts,
-                          selected = "count")
-            )
-          ),
-          class = "d-flex justify-content-center"
-        ),
-        conditionalPanel(
-          condition = 'input.display == "Bar Plot"',
-          plotlyOutput("barPlot"),
-          plotlyOutput("tsPlot")
-        ),
-        # conditionalPanel(
-        #   condition = 'input.display == "Time Series Plot"',
-        #   plotlyOutput("tsPlot")
-        # ),
-        conditionalPanel(
-          condition = 'input.display == "Table"',
-          reactableOutput("table") |> 
-            tooltip("The aggregated row shows the number of years in the Year 
-                      column and the max number of vehicles across all selected 
-                      years in the fuel type columns.")
-        )
-      ),
+      col_widths = c(5, 7),
       card(
         full_screen = TRUE,
         card_header(
@@ -94,8 +53,23 @@ page_navbar(
           ),
           class = "d-flex justify-content-between"
         ),
-        leafletOutput("map") |> 
-          tooltip(uiOutput("mapInfo"))
+        leafletOutput("map")
+      ),
+      card(
+        card_header(
+          popover(
+            bsicons::bs_icon("gear", class = "ms-auto"), 
+            title = "Plot Settings", 
+            selectInput("resp", "Vehicle Population", choices = resp_opts,
+                        selected = "count")
+          ),
+          class = "d-flex justify-content-center"
+        ),
+        conditionalPanel(
+          condition = "input.fuel_types.length > 1",
+          plotlyOutput("barPlot")
+        ),
+        plotlyOutput("tsPlot")
       )
     )
   ),
