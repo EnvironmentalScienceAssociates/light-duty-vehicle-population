@@ -3,7 +3,6 @@ library(dplyr)
 
 if (!dir.exists("data")) dir.create("data")
 
-
 # Human Population --------------------------------------------------------
 
 prep_census <- function(data){
@@ -26,9 +25,10 @@ saveRDS(county_popest, file.path("data", "county_popest.rds"))
 # Vehicle Population ------------------------------------------------------
 
 # https://www.energy.ca.gov/files/zev-and-infrastructure-stats-data
+# file will change annually in April or May and the url will need to be updated
 ld_file = file.path("data", "Vehicle_Population.xlsx")
 if (!file.exists(ld_file)){
-  download.file("https://www.energy.ca.gov/filebrowser/download/6311?fid=6311", 
+  download.file("https://www.energy.ca.gov/filebrowser/download/7591?fid=7591", 
                 ld_file, mode = "wb")
 }
 
