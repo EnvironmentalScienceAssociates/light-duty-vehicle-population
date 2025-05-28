@@ -69,14 +69,16 @@ city_sf = cities |>
 counties = read_sf("https://services3.arcgis.com/uknczv4rpevve42E/arcgis/rest/services/California_County_Boundaries_and_Identifiers_Blue_Version_view/FeatureServer/1/query?outFields=*&where=1%3D1&f=geojson") |> 
   st_make_valid()
 
-county_sf = counties |> 
+county_sf_tmp = counties |> 
   select(objectid = OBJECTID, county = CDT_NAME_SHORT)
 
-# https://gis.data.ca.gov/datasets/CDEGIS::california-zip-codes/about
-zip_codes = read_sf("https://services3.arcgis.com/fdvHcZVgB2QSRNkL/arcgis/rest/services/ZipCodes/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson") |> 
+# https://gis.data.ca.gov/datasets/California::ca-zip-code-boundaries/about
+# unfortunately, wasn't able to read this from the API without crashing R
+# resorted to downloading from the link above and placing in data folder (not tracked by git)
+zip_codes = read_sf(file.path("data", "USA_ZIP_Code_Areas_anaylsis_-6780652524483752198.geojson")) |> 
   st_make_valid()
 
-zip_sf = zip_codes |> 
+zip_sf_tmp = zip_codes |> 
   select(objectid = OBJECTID, zip = ZIP_CODE)
 
 # # not all zip codes are geographically based (e.g., PO boxes, military installations)
@@ -127,7 +129,7 @@ zip_sf = zip_codes |>
 ## Intersection ------------------------------------------------------------
 
 to_sqmi <- function(x){
-  round(units::drop_units(units::set_units(x, mi^2)), 1)
+  units::drop_units(units::set_units(x, mi^2))
 }
 
 intersects <- function(x, y, x_col, y_col){
@@ -141,39 +143,48 @@ intersects <- function(x, y, x_col, y_col){
     if (nrow(y_sub) > 0){
       y_val = y_sub[[y_col]]
       st_int = st_intersection(x_sub, y_sub)
-      area_inc = to_sqmi(st_area(st_int))
+      area_inter = to_sqmi(st_area(st_int))
     } else {
       y_val = NA
-      area_inc = 0
+      area_inter = 0
     }
     out[[i]] = data.frame(c1 = x_sub[[x_col]],
                           c2 = y_val,
                           area_sqmi = to_sqmi(st_area(x_sub)),
-                          area_inc = area_inc) |> 
-      setNames(c(x_col, y_col, "area_sqmi", "area_inc"))
+                          area_inter = area_inter) |> 
+      setNames(c(x_col, y_col, "area_sqmi", "area_inter"))
   }
   out
 }
 
-county_city = bind_rows(intersects(county_sf, city_sf, "county", "city"))
+county_city = bind_rows(intersects(county_sf_tmp, city_sf, "county", "city"))
 
 county_inc = county_city |> 
   group_by(county, area_sqmi) |> 
-  summarise(area_inc = sum(area_inc, na.rm = TRUE)) 
+  summarise(area_inter = round(sum(area_inter, na.rm = TRUE), 1)) |> 
+  mutate(area_sqmi = round(area_sqmi, 1))
 
-county_sf = left_join(county_sf, county_inc) |> 
+county_sf = left_join(county_sf_tmp, county_inc) |> 
   rmapshaper::ms_simplify()
 saveRDS(county_sf, file.path("data", "county_sf.rds"))
 
-zip_city = bind_rows(intersects(zip_sf, city_sf, "zip", "city"))
+zip_city = bind_rows(intersects(zip_sf_tmp, city_sf, "zip", "city")) |> 
+  arrange(zip, area_inter)
 
 zip_inc = zip_city |> 
   group_by(zip, area_sqmi) |> 
-  summarise(area_inc = sum(area_inc, na.rm = TRUE))
+  summarise(area_inter = round(sum(area_inter, na.rm = TRUE), 1)) |> 
+  mutate(area_sqmi = round(area_sqmi, 1))
 
-zip_sf = left_join(zip_sf, zip_inc) |> 
+zip_sf = left_join(zip_sf_tmp, zip_inc) |> 
   rmapshaper::ms_simplify()
 saveRDS(zip_sf, file.path("data", "zip_sf.rds"))
+
+# zip_county = bind_rows(intersects(zip_sf_tmp, county_sf, "zip", "county")) |> 
+#   arrange(zip, desc(area_inter))
+# writexl::write_xlsx(list("City" = rename(zip_city, area_city = area_inter), 
+#                          "County" = rename(zip_county, area_county = area_inter)), 
+#                     "CA-Zip-Area.xlsx")
 
 # zip_inc_point = zip_db_sf |> 
 #   st_join(select(city_sf, city), join = st_within) |> 

@@ -177,7 +177,7 @@ function(input, output, session) {
     mutate(tmp, popup = paste0(popup, round(per_area, 3), " per sq. mi.<br>",
                                "<strong>Area</strong><br>",
                                "Total: ", area_sqmi, " sq. mi.<br>",
-                               "Incorporated: ", area_inc, " sq. mi."))
+                               "Incorporated: ", area_inter, " sq. mi."))
   })
 
   output$map = renderLeaflet({
