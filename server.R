@@ -39,7 +39,7 @@ function(input, output, session) {
     dfx = czSub()
     dfx[dfx[["fuel_type"]] %in% input$fuel_types, ]
   })
-
+  
   barSummTotal <- reactive({
     dfx = if (input$resp == "percent_selected") czYearFuelSub() else czYearSub()
     dfx |> 
@@ -53,9 +53,7 @@ function(input, output, session) {
       summarise(count = sum(count, na.rm = TRUE)) |> 
       left_join(barSummTotal(), by = join_by(year)) |> 
       mutate(percent = round(count/total * 100, 2),
-             tooltip_text = paste0("Year: ", year, "<br>",
-                                   "Fuel Type: ", fuel_type, "<br>",
-                                   "Vehicles: ", count, " (", percent, "%)"))
+             tooltip_text = make_plot_tooltip(year, fuel_type, count, percent))
   })
   
   yLab <- reactive({
@@ -73,11 +71,13 @@ function(input, output, session) {
   
   output$barPlot <- renderPlotly({
     req(nrow(barSumm()) > 0)
-    p = ggplot(barSumm(),
-               aes(x = fuel_type, y = .data[[resp()]], fill = fuel_type, text = tooltip_text)) +
+    
+    p = ggplot(barSumm(), aes(x = fuel_type, y = .data[[resp()]], 
+                              fill = fuel_type, text = tooltip_text)) +
       geom_bar(stat = "identity", width = 0.5) +
       labs(y = yLab(), title = paste("Year:", input$year)) +
       scale_fill_manual(name = "Fuel Type", values = fuel_type_colors) +
+      scale_y_continuous(labels = comma) +
       theme_minimal() +
       theme(axis.title.x = element_blank(),
             axis.text.x = element_blank())
@@ -98,21 +98,20 @@ function(input, output, session) {
       summarise(count = sum(count, na.rm = TRUE)) |> 
       left_join(tsSummTotal(), by = join_by(year)) |> 
       mutate(percent = round(count/total * 100, 2),
-             tooltip_text = paste0("Year: ", year, "<br>",
-                                   "Fuel Type: ", fuel_type, "<br>",
-                                   "Vehicles: ", count, " (", percent, "%)"))
+             tooltip_text = make_plot_tooltip(year, fuel_type, count, percent))
   })
   
   output$tsPlot <- renderPlotly({
     req(nrow(tsSumm()) > 0)
+    
     p = ggplot(tsSumm(),
                aes(x = year, y = .data[[resp()]], color = fuel_type,
                    group = fuel_type, text = tooltip_text)) +
       geom_line(alpha = 0.5) +
-      # geom_point(alpha = 0.8) +
       geom_point(data = barSumm(), size = 2) +
       labs(x = "Year", y = yLab()) +
       scale_color_manual(name = "Fuel Type", values = fuel_type_colors) +
+      scale_y_continuous(labels = comma) +
       theme_minimal() 
     
     if (length(input$fuel_types) > 1) p = p + theme(legend.position = "none")
@@ -128,11 +127,11 @@ function(input, output, session) {
     sel = if(rv$resp_map_last %in% opts) rv$resp_map_last else opts[1]
     updateSelectInput(session, "resp_map", choices = opts, selected = sel)
   })
-
+  
   spatialLayer <- reactive({
     if (input$map_filter == "county") county_sf else zip_sf
   })
-
+  
   spatialSub <- reactive({
     dfx = spatialLayer()
     if (input$map_filter == "county"){
@@ -143,7 +142,7 @@ function(input, output, session) {
     }
     dfx
   })
-
+  
   spatialPopSumm <- reactive({
     top_row <- function(type, x){
       if (type == "county"){
@@ -152,20 +151,21 @@ function(input, output, session) {
         paste("ZIP", x)
       }
     }
-
+    
     pop = czYearFuelSub() |>
       group_by(across(all_of(c(input$map_filter, "year")))) |>
       summarise(count = sum(count, na.rm = TRUE))
-
+    
     tmp = spatialSub() |>
       left_join(pop, by = input$map_filter) |>
       filter(count > 0) |>
-      mutate(per_area = count/area_sqmi,
+      mutate(per_sqmi = count/area_sqmi,
              popup = paste0("<strong>", top_row(input$map_filter, .data[[input$map_filter]]),
                             " (", year, ")</strong><br>",
                             "<strong>Vehicles</strong><br>",
-                            count, " total<br>"))
-
+                            prettyNum(count, big.mark = ",", scientific = FALSE), 
+                            " total<br>"))
+    
     if (input$map_filter == "county"){
       popest_sub = county_popest[county_popest[["county"]] %in% input$counties,]
       tmp = tmp |>
@@ -173,13 +173,13 @@ function(input, output, session) {
         mutate(per_capita = count/popest,
                popup = paste0(popup, round(per_capita, 3), " per capita<br>"))
     }
-
-    mutate(tmp, popup = paste0(popup, round(per_area, 3), " per sq. mi.<br>",
+    
+    mutate(tmp, popup = paste0(popup, round(per_sqmi, 3), " per sq. mi.<br>",
                                "<strong>Area</strong><br>",
                                "Total: ", area_sqmi, " sq. mi.<br>",
                                "Incorporated: ", area_inter, " sq. mi."))
   })
-
+  
   output$map = renderLeaflet({
     leaflet(options = leafletOptions(attributionControl = FALSE)) |>
       setView(lng = -120, lat = 37.5, zoom = 6) |>
@@ -193,38 +193,49 @@ function(input, output, session) {
         circleMarkerOptions = FALSE,
         editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
   })
-
+  
   observeEvent(input$map_draw_new_feature, {
     rv$shape = geojsonsf::geojson_sf(jsonify::to_json(input$map_draw_new_feature, unbox = TRUE))
   })
-
+  
   observeEvent(input$map_draw_edited_features, {
     rv$shape = geojsonsf::geojson_sf(jsonify::to_json(input$map_draw_edited_features, unbox = TRUE))
   })
-
+  
   observeEvent(input$map_draw_deleted_features, {
     rv$shape = NULL
   })
-
+  
   observeEvent(rv$shape, {
     # update both at same time so that it is easy to switch from county to zip
     # with the same polygon select
     county_inter = st_join(county_sf, rv$shape) |>
       filter(!is.na(feature_type))
     updatePickerInput(session, "counties", selected = county_inter$county)
-
+    
     zip_inter = st_join(zip_sf, rv$shape) |>
       filter(!is.na(feature_type))
     updatePickerInput(session, "zips", selected = zip_inter$zip)
   })
-
+  
+  legendTitle <- reactive({
+    if (input$resp_map == "count") {
+      "Number of<br>Vehicles" 
+    } else if (input$resp_map == "per_capita") { 
+      "Vehicles Per<br>Capita"
+    } else {
+      "Vehicles Per<br>Square Mile"
+    }
+  })
+  
   proxy <- leafletProxy("map")
-
+  
   observe({
     dfx = spatialPopSumm()
     # clear everything when dfx changes
     proxy |>
-      clearGroup("poly") 
+      clearGroup("poly") |> 
+      clearControls()
     
     # only remap when dfx has data
     req(nrow(dfx) > 0)
@@ -238,8 +249,10 @@ function(input, output, session) {
                   fillColor = colorNumeric("Blues", dfx[[input$resp_map]])(dfx[[input$resp_map]]),
                   label = dfx[[input$map_filter]],
                   popup = ~popup,
-                  group = "poly")
+                  group = "poly") |> 
+      addLegend("topright", pal = colorNumeric("Blues", dfx[[input$resp_map]]),
+                values = dfx[[input$resp_map]], title = legendTitle(), opacity = 1)
   })
-
+  
 }
 

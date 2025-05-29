@@ -9,6 +9,7 @@ library(sf)
 library(ggplot2)
 library(plotly)
 library(reactable)
+library(scales)
 
 # added popest later which refers to human population
 # pop refers to vehicle population
@@ -35,12 +36,20 @@ year_max = max(county_pop$year, na.rm = TRUE)
 map_opts = c("County" = "county", "Zip Code" = "zip")
 resp_opts = c("Count" = "count", "Percent All" = "percent_all", 
               "Percent Selected" = "percent_selected")
-resp_map_opts = c("Count" = "count", "Per Area" = "per_area", "Per Capita" = "per_capita")
+resp_map_opts = c("Count" = "count", "Per Square Mile" = "per_sqmi", "Per Capita" = "per_capita")
 
 # from toupper documentation
 simple_cap <- function(x) {
   s <- strsplit(x, " ")[[1]]
   paste(toupper(substring(s, 1, 1)), substring(s, 2),
         sep = "", collapse = " ")
+}
+
+make_plot_tooltip <- function(year, fuel_type, count, percent){
+  paste0("Year: ", year, "<br>",
+         "Fuel Type: ", fuel_type, "<br>",
+         "Vehicles: ", 
+         prettyNum(count, big.mark = ",", scientific = FALSE), 
+         " (", percent, "%)")
 }
 
