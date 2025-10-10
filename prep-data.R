@@ -72,10 +72,10 @@ counties = read_sf("https://services3.arcgis.com/uknczv4rpevve42E/arcgis/rest/se
 county_sf_tmp = counties |> 
   select(objectid = OBJECTID, county = CDT_NAME_SHORT)
 
-# https://gis.data.ca.gov/datasets/California::ca-zip-code-boundaries/about
+# https://gis.data.ca.gov/datasets/f7afe55481244706903fbe6be5e986d3_0/about
 # unfortunately, wasn't able to read this from the API without crashing R
 # resorted to downloading from the link above and placing in data folder (not tracked by git)
-zip_codes = read_sf(file.path("data", "USA_ZIP_Code_Areas_anaylsis_-6780652524483752198.geojson")) |> 
+zip_codes = read_sf(file.path("data", "USA_ZIP_Code_Areas_anaylsis_-8171513847662788677.geojson")) |> 
   st_make_valid()
 
 zip_sf_tmp = zip_codes |> 
