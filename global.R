@@ -20,12 +20,19 @@ counties = c(county_sf$county, "Out of State")
 
 zip_pop = readRDS(file.path("data", "zip_pop.rds"))
 zips = sort(unique(zip_pop$zip))
-zip_sf = readRDS(file.path("data", "zip_sf.rds")) |> 
+zip_sf = readRDS(file.path("data", "zip_sf.rds")) |>
   filter(zip %in% zips)
 
 fuel_types = levels(county_pop$fuel_type)
-fuel_type_colors = c("#66a61e", "#7570b3", "#1b9e77", "#d95f02",  
-                     "#a6761d", "#e6ab02", "#e7298a") |> 
+fuel_type_colors = c(
+  "#66a61e",
+  "#7570b3",
+  "#1b9e77",
+  "#d95f02",
+  "#a6761d",
+  "#e6ab02",
+  "#e7298a"
+) |>
   setNames(fuel_types)
 
 zevs = c("Battery Electric (BEV)", "Plug-in Hybrid (PHEV)", "Fuel Cell (FCEV)")
@@ -34,22 +41,35 @@ year_min = min(county_pop$year, na.rm = TRUE)
 year_max = max(county_pop$year, na.rm = TRUE)
 
 map_opts = c("County" = "county", "Zip Code" = "zip")
-resp_opts = c("Count" = "count", "Percent All" = "percent_all", 
-              "Percent Selected" = "percent_selected")
-resp_map_opts = c("Count" = "count", "Per Square Mile" = "per_sqmi", "Per Capita" = "per_capita")
+resp_opts = c(
+  "Count" = "count",
+  "Percent All" = "percent_all",
+  "Percent Selected" = "percent_selected"
+)
+resp_map_opts = c(
+  "Count" = "count",
+  "Per Square Mile" = "per_sqmi",
+  "Per Capita" = "per_capita"
+)
 
 # from toupper documentation
 simple_cap <- function(x) {
   s <- strsplit(x, " ")[[1]]
-  paste(toupper(substring(s, 1, 1)), substring(s, 2),
-        sep = "", collapse = " ")
+  paste(toupper(substring(s, 1, 1)), substring(s, 2), sep = "", collapse = " ")
 }
 
-make_plot_tooltip <- function(year, fuel_type, count, percent){
-  paste0("Year: ", year, "<br>",
-         "Fuel Type: ", fuel_type, "<br>",
-         "Vehicles: ", 
-         prettyNum(count, big.mark = ",", scientific = FALSE), 
-         " (", percent, "%)")
+make_plot_tooltip <- function(year, fuel_type, count, percent) {
+  paste0(
+    "Year: ",
+    year,
+    "<br>",
+    "Fuel Type: ",
+    fuel_type,
+    "<br>",
+    "Vehicles: ",
+    prettyNum(count, big.mark = ",", scientific = FALSE),
+    " (",
+    percent,
+    "%)"
+  )
 }
-
